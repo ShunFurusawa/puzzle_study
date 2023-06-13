@@ -42,7 +42,7 @@ public class BoardController : MonoBehaviour
 
     public static bool IsValidated(Vector2Int pos)
     {
-        return 0 <= pos.x && pos.x <= BOARD_WIDTH
+        return 0 <= pos.x && pos.x < BOARD_WIDTH
             && 0 <= pos.y && pos.y < BOARD_HEIGHT;
     }
 
@@ -50,22 +50,20 @@ public class BoardController : MonoBehaviour
     {
         if (!IsValidated(pos)) return false;
 
-        return 0 == _board[pos.x, pos.y];
+        return 0 == _board[pos.y, pos.x];
     }
 
     public bool Settle(Vector2Int pos, int val)
     {
         if (!CanSettle(pos)) return false;
 
-        _board[pos.x, pos.y] = val;
+        _board[pos.y, pos.x] = val;
 
-        Debug.Assert(_Puyos[pos.x, pos.y] == null);
+        Debug.Assert(_Puyos[pos.y, pos.x] == null);
         Vector3 world_position = transform.position + new Vector3(pos.x, pos.y, 0.0f);
         _Puyos[pos.y, pos.x] = Instantiate(prefabPuyo, world_position, Quaternion.identity, transform);
         _Puyos[pos.y, pos.x].GetComponent<PuyoController>().SetPuyoType((PuyoType)val);
 
         return true;
-    }
-    
-
+    }  
 }
