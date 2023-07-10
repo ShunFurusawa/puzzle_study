@@ -79,7 +79,7 @@ public class LogicalInput
             {
                 if (--_trgWaitingTime[i] <= 0)
                 {
-                    inputRep |= (Key)(i << i);
+                    inputRep |= (Key)(1 << i);
                     _trgWaitingTime[i] = KEY_REPEAT_ITERATION_TIME;
                 }
             }

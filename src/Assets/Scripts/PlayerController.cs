@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 public class PlayerController : MonoBehaviour
 {
@@ -60,7 +59,6 @@ public class PlayerController : MonoBehaviour
 
         return true;
     }
-
     void SetTransition(Vector2Int pos, RotState rot, float time)
     {
         //補間の為に保存しておく
@@ -214,6 +212,7 @@ public class PlayerController : MonoBehaviour
         //入力を取り込む
         UpdateInput();
 
+        //操作を受けて動かす
         if (!_animationController.Update())   //アニメ中はキー入力を受け付けない
         {
             Controll();
