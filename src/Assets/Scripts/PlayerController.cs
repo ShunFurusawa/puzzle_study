@@ -4,6 +4,15 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
+    //落下制御
+    const int FALL_COUNT_UNIT = 120;    //ひとマス落下するカウント数
+    const int FALL_COUNT_SPD = 10;      //落下速度
+    const int FALL_COUNT_FAST_SPD = 20; //高速落下時の速度
+    const int GROUND_FRAMES = 50;       //接地移動可能時間
+    //落下制御
+    int _fallCount = 0;
+    int _groundFrame = GROUND_FRAMES; //接地時間
+
     const int TRANS_TIME = 3; //移動速度遷移時間
     const int ROT_TIME = 3;   //回転遷移時間
 
@@ -116,7 +125,6 @@ public class PlayerController : MonoBehaviour
             default:
                 Debug.Assert(false);
                 break;
-
         }
         if (!CanMove(pos, rot)) return false;
 
@@ -124,6 +132,20 @@ public class PlayerController : MonoBehaviour
         SetTransition(pos, rot, ROT_TIME);
 
         return true;
+    }
+
+    void Settle()
+    {
+        //直接接地
+        bool is_set0 = boardController.Settle(_position,
+            (int)_puyoControllers[0].GetPuyoType());
+        Debug.Assert(is_set0);  //置いたのは空いていた場所のはず
+
+        bool is_set1 = boardController.Settle(CalcChildPuyoPos(_position, _rotate),
+            (int)_puyoControllers[1].GetPuyoType());
+        Debug.Assert(is_set1);  //置いたのは空いていた場所のはず
+
+        gameObject.SetActive(false);
     }
 
     void QuickDrop()
@@ -177,8 +199,41 @@ public class PlayerController : MonoBehaviour
         logicalInput.Updata(inputDev);
     }
 
+    bool Fall (bool is_fast)
+    {
+        _fallCount -= is_fast ? FALL_COUNT_FAST_SPD : FALL_COUNT_SPD;
+
+        //ブロックを飛び越えたら、行けるのかチェック
+        while (_fallCount < 0 ) //ブロックが飛ぶ可能性がない事もない気がするので複数落下に対応
+        {
+            if (!CanMove(_position + Vector2Int.down, _rotate))
+            {
+                //落ちれないなら
+                _fallCount = 0; //動きを止める
+                if (0 < --_groundFrame) return true; //時間があるなら移動・回転可能
+
+                //時間切れになったら本当に固定
+                Settle();
+                return false;
+            }
+
+            //落ちれるなら下に進む
+            _position += Vector2Int.down;
+            _last_position += Vector2Int.down;
+            _fallCount += FALL_COUNT_UNIT;
+        }
+
+        return true;
+    }
+
     void Controll()
     {
+        //落とす
+        if (!Fall(logicalInput.IsRaw(LogicalInput.Key.Down))) return;//接地したら終了
+
+        //アニメ中はキー入力を受け付けない
+        if (_animationController.Update()) return;
+
         //平行移動のキー入力取得
         if (logicalInput.IsRepeat(LogicalInput.Key.Right))
         {
@@ -213,14 +268,13 @@ public class PlayerController : MonoBehaviour
         UpdateInput();
 
         //操作を受けて動かす
-        if (!_animationController.Update())   //アニメ中はキー入力を受け付けない
-        {
             Controll();
-        }
 
+        //表示
+        Vector3 dy = Vector3.up * (float)_fallCount / (float)FALL_COUNT_UNIT;
         float anim_rate = _animationController.GetNormalized();
-        _puyoControllers[0].SetPos(Interpolate(_position, RotState.Invalid, _last_position, RotState.Invalid, anim_rate));
-        _puyoControllers[1].SetPos(Interpolate(_position, _rotate, _last_position, _last_rotate, anim_rate));
+        _puyoControllers[0].SetPos(dy + Interpolate(_position, RotState.Invalid, _last_position, RotState.Invalid, anim_rate));
+        _puyoControllers[1].SetPos(dy + Interpolate(_position, _rotate, _last_position, _last_rotate, anim_rate));
     }
 
     //rateが1->0で、pos_last -> pos, rot_last -> rotに遷移。
