@@ -9,6 +9,7 @@ interface IState
     { 
         Control = 0,
         GameOver = 1,
+        Falling = 2,
 
         MAX,
 
@@ -19,27 +20,31 @@ interface IState
     E_State Update(PlayDirector parent);
 }
 
+[RequireComponent(typeof(BoardController))]
 public class PlayDirector : MonoBehaviour
 {
     [SerializeField] GameObject player = default!;
     PlayerController _playerController = null;
     LogicalInput _logicalInput = new();
+    BoardController _boardController = default!;
 
     NextQueue _nextQueue = new();
     [SerializeField] PuyoPair[] nextPuyoPairs = { default!, default! };
 
     //èÛë‘ä«óù
-    IState.E_State _current_state = IState.E_State.Control;
+    IState.E_State _current_state = IState.E_State.Falling;
     static readonly IState[] states = new IState[(int)IState.E_State.MAX]
     {
         new ControlState(),
         new GameOverState(),
+        new FallingState(),
     };
 
     // Start is called before the first frame update
     void Start()
     {
         _playerController = player.GetComponent<PlayerController>();
+        _boardController = GetComponent<BoardController>();
         _logicalInput.Clear();
         _playerController.SetLogicalInput(_logicalInput);
 
@@ -97,7 +102,7 @@ public class PlayDirector : MonoBehaviour
         }
         public IState.E_State Update(PlayDirector parent)
         {
-            return parent.player.activeSelf ? IState.E_State.Unchaneged : IState.E_State.Control;
+            return parent.player.activeSelf ? IState.E_State.Unchaneged : IState.E_State.Falling;
         }
     }
 
@@ -111,6 +116,18 @@ public class PlayDirector : MonoBehaviour
         public IState.E_State Update(PlayDirector parent)
         {
              return IState.E_State.Unchaneged;
+        }
+    }
+
+    class FallingState : IState
+    {
+        public IState.E_State Initialize(PlayDirector parent)
+        {
+            return parent._boardController.CheckFall() ? IState.E_State.Unchaneged : IState.E_State.Control;
+        }
+        public IState.E_State Update(PlayDirector parent)
+        {
+            return parent._boardController.Fall() ? IState.E_State.Unchaneged : IState.E_State.Control;
         }
     }
 
@@ -132,7 +149,6 @@ public class PlayDirector : MonoBehaviour
         Debug.Assert(condition: _current_state is >= 0 and < IState.E_State.MAX);
 
         var next_state = states[(int)_current_state].Update(this);
-
         if (next_state != IState.E_State.Unchaneged)
         {
             //éüÇÃèÛë‘Ç…ëJà⁄
