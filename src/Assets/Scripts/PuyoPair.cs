@@ -11,16 +11,4 @@ public class PuyoPair : MonoBehaviour
         puyos[0].SetPuyoType(axis);
         puyos[1].SetPuyoType(child);
     }
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 }
