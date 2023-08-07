@@ -10,10 +10,11 @@ interface IState
         Control = 0,
         GameOver = 1,
         Falling = 2,
+        Erasing = 3,
 
         MAX,
 
-        Unchaneged,
+        Unchanged,
     }
 
     E_State Initialize(PlayDirector parent);
@@ -38,6 +39,7 @@ public class PlayDirector : MonoBehaviour
         new ControlState(),
         new GameOverState(),
         new FallingState(),
+        new ErasingState(),
     };
 
     // Start is called before the first frame update
@@ -98,11 +100,11 @@ public class PlayDirector : MonoBehaviour
             }
 
             parent.UpdateNextsView();
-            return IState.E_State.Unchaneged;
+            return IState.E_State.Unchanged;
         }
         public IState.E_State Update(PlayDirector parent)
         {
-            return parent.player.activeSelf ? IState.E_State.Unchaneged : IState.E_State.Falling;
+            return parent.player.activeSelf ? IState.E_State.Unchanged : IState.E_State.Falling;
         }
     }
 
@@ -111,11 +113,11 @@ public class PlayDirector : MonoBehaviour
         public IState.E_State Initialize(PlayDirector parent)
         {
             SceneManager.LoadScene(0); //リトライ
-            return IState.E_State.Unchaneged;
+            return IState.E_State.Unchanged;
         }
         public IState.E_State Update(PlayDirector parent)
         {
-             return IState.E_State.Unchaneged;
+             return IState.E_State.Unchanged;
         }
     }
 
@@ -123,13 +125,28 @@ public class PlayDirector : MonoBehaviour
     {
         public IState.E_State Initialize(PlayDirector parent)
         {
-            return parent._boardController.CheckFall() ? IState.E_State.Unchaneged : IState.E_State.Control;
+            return parent._boardController.CheckFall() ? IState.E_State.Unchanged : IState.E_State.Erasing;
+        }
+
+        public IState.E_State Update(PlayDirector parent)
+        {
+            return parent._boardController.Fall() ? IState.E_State.Unchanged : IState.E_State.Erasing;
+
+        }
+    }
+
+    class ErasingState : IState
+    {
+        public IState.E_State Initialize(PlayDirector parent)
+        {
+            return parent._boardController.CheckErase() ? IState.E_State.Unchanged : IState.E_State.Control;
         }
         public IState.E_State Update(PlayDirector parent)
         {
-            return parent._boardController.Fall() ? IState.E_State.Unchaneged : IState.E_State.Control;
+            return parent._boardController.Erase() ? IState.E_State.Unchanged : IState.E_State.Falling;
         }
     }
+
 
     void InitializeState()
     {
@@ -137,7 +154,7 @@ public class PlayDirector : MonoBehaviour
         
         var next_state = states[(int)_current_state].Initialize(this);
 
-        if(next_state != IState.E_State.Unchaneged)
+        if(next_state != IState.E_State.Unchanged)
         {
             _current_state = next_state;
             InitializeState(); //初期化で状態が変わるようなら再帰的に初期を呼び出す
@@ -149,7 +166,7 @@ public class PlayDirector : MonoBehaviour
         Debug.Assert(condition: _current_state is >= 0 and < IState.E_State.MAX);
 
         var next_state = states[(int)_current_state].Update(this);
-        if (next_state != IState.E_State.Unchaneged)
+        if (next_state != IState.E_State.Unchanged)
         {
             //次の状態に遷移
             _current_state = next_state;
